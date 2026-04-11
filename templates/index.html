@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FraudSense AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0b0f;--surface:#111318;--surface2:#181c24;--surface3:#1e2330;
+  --border:#2a2f3d;--border2:#3a4055;
+  --text:#e8eaf0;--text2:#8892aa;--text3:#5a6275;
+  --green:#00e676;--green-bg:rgba(0,230,118,0.08);--green-border:rgba(0,230,118,0.25);
+  --red:#ff4444;--red-bg:rgba(255,68,68,0.08);--red-border:rgba(255,68,68,0.25);
+  --amber:#ffb300;--amber-bg:rgba(255,179,0,0.08);
+  --blue:#4fc3f7;--purple:#ce93d8;
+  --font:'Space Grotesk',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh}
+
+/* ── Layout ── */
+.app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:24px 16px;display:flex;flex-direction:column}
+.main{padding:28px;overflow-y:auto}
+
+/* ── Sidebar ── */
+.logo{display:flex;align-items:center;gap:10px;padding-bottom:20px;border-bottom:1px solid var(--border);margin-bottom:20px}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,#ff4444,#ff8800);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.logo-name{font-size:16px;font-weight:700;letter-spacing:-0.3px}
+.logo-sub{font-size:10px;color:var(--text3);font-family:var(--mono);letter-spacing:1px;text-transform:uppercase}
+
+.model-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px}
+.model-card-title{font-size:10px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}
+.model-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:4px 0}
+.model-row span:first-child{color:var(--text3);font-family:var(--mono)}
+.model-row span:last-child{color:var(--text);font-family:var(--mono);font-size:11px}
+.status-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:5px;background:var(--green)}
+
+.sidebar-counters{margin-top:auto;display:flex;flex-direction:column;gap:8px}
+.counter-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.counter-label{font-size:10px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px}
+.counter-value{font-size:24px;font-weight:700;font-family:var(--mono);margin-top:2px}
+.counter-value.red{color:var(--red)}
+.counter-value.green{color:var(--green)}
+
+/* ── Page header ── */
+.page-header{margin-bottom:24px}
+.page-title{font-size:22px;font-weight:700;letter-spacing:-0.5px}
+.page-sub{font-size:13px;color:var(--text3);margin-top:4px}
+
+/* ── Cards ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:18px}
+.card-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;font-family:var(--mono);margin-bottom:16px}
+
+/* ── Form ── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:11px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px}
+.field input,.field select{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;padding:10px 12px;color:var(--text);
+  font-family:var(--mono);font-size:13px;outline:none;
+  transition:border-color .15s;-webkit-appearance:none;width:100%
+}
+.field input:focus,.field select:focus{border-color:var(--border2)}
+.field select option{background:var(--surface2)}
+
+/* ── Buttons ── */
+.btn-row{display:flex;gap:10px;margin-top:18px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;border-radius:8px;border:none;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;transition:all .15s}
+.btn-primary{background:linear-gradient(135deg,#ff4444,#ff8800);color:#fff}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-ghost{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--surface3);color:var(--text)}
+
+/* ── Result ── */
+.result-wrap{display:none;margin-top:18px;border-radius:10px;padding:18px 20px;border:1px solid}
+.result-wrap.fraud{background:var(--red-bg);border-color:var(--red-border)}
+.result-wrap.legit{background:var(--green-bg);border-color:var(--green-border)}
+.result-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.result-title{font-size:18px;font-weight:700;font-family:var(--mono)}
+.result-title.fraud{color:var(--red)}
+.result-title.legit{color:var(--green)}
+.badge{display:inline-flex;align-items:center;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;font-family:var(--mono)}
+.badge.fraud{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.badge.legit{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.badge.LOW{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.badge.MEDIUM{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(255,179,0,.3)}
+.badge.HIGH,.badge.CRITICAL{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+
+.conf-bar{height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;margin:8px 0}
+.conf-fill{height:100%;border-radius:3px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.conf-fill.fraud{background:linear-gradient(90deg,#ff8800,#ff4444)}
+.conf-fill.legit{background:linear-gradient(90deg,#00c45a,#00e676)}
+
+.result-stats{display:flex;gap:20px;font-size:12px;color:var(--text2);font-family:var(--mono);margin-bottom:10px}
+.result-input{font-size:11px;color:var(--text3);font-family:var(--mono);padding:8px 10px;background:rgba(0,0,0,.2);border-radius:6px;margin-bottom:10px;word-break:break-all}
+.flags-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.flag-pill{font-size:11px;padding:3px 9px;background:var(--surface3);border-radius:12px;color:var(--text2);font-family:var(--mono)}
+
+/* ── History ── */
+.history-table{width:100%;border-collapse:collapse;font-size:12px;font-family:var(--mono)}
+.history-table thead tr{background:var(--surface2)}
+.history-table th{padding:9px 14px;text-align:left;font-size:10px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;border-bottom:1px solid var(--border);font-weight:500}
+.history-table td{padding:9px 14px;border-bottom:1px solid rgba(42,47,61,.5);color:var(--text2)}
+.history-table tr:last-child td{border-bottom:none}
+.history-table tr:hover td{background:rgba(255,255,255,.02)}
+.history-empty{padding:24px;text-align:center;font-size:12px;color:var(--text3);font-family:var(--mono)}
+
+/* ── Metrics ── */
+.metrics-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.metric-label{font-size:10px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px}
+.metric-value{font-size:26px;font-weight:700;font-family:var(--mono);margin-top:4px}
+.metric-value.green{color:var(--green)}
+.metric-value.red{color:var(--red)}
+.metric-value.amber{color:var(--amber)}
+.metric-value.blue{color:var(--blue)}
+.metric-sub{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* ── Spinner ── */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn .3s ease}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:13px;font-family:var(--mono);z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+
+::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ── Sidebar ── -->
+  <div class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">🔍</div>
+      <div>
+        <div class="logo-name">FraudSense AI</div>
+        <div class="logo-sub">BERT Engine</div>
+      </div>
+    </div>
+
+    <div class="model-card">
+      <div class="model-card-title">Model Status</div>
+      <div class="model-row">
+        <span>Status</span>
+        <span><span class="status-dot"></span>Loaded</span>
+      </div>
+      {% if meta %}
+      <div class="model-row">
+        <span>Accuracy</span>
+        <span style="color:var(--green)">{{ "%.2f"|format(meta.best_val_acc * 100) }}%</span>
+      </div>
+      <div class="model-row">
+        <span>Trained on</span>
+        <span>{{ meta.rows | default('?') | int | string }}rows</span>
+      </div>
+      <div class="model-row">
+        <span>Epochs</span>
+        <span>{{ meta.epochs | default('?') }}</span>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if meta and meta.confusion_matrix %}
+    <div class="model-card">
+      <div class="model-card-title">Confusion Matrix</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px;font-family:var(--mono)">
+        <div style="padding:8px;background:var(--green-bg);border:1px solid var(--green-border);border-radius:6px;text-align:center">
+          <div style="font-size:16px;font-weight:700;color:var(--green)">{{ meta.confusion_matrix.TN }}</div>
+          <div style="color:var(--text3)">TN</div>
+        </div>
+        <div style="padding:8px;background:var(--red-bg);border:1px solid var(--red-border);border-radius:6px;text-align:center">
+          <div style="font-size:16px;font-weight:700;color:var(--red)">{{ meta.confusion_matrix.FP }}</div>
+          <div style="color:var(--text3)">FP</div>
+        </div>
+        <div style="padding:8px;background:var(--amber-bg);border:1px solid rgba(255,179,0,.3);border-radius:6px;text-align:center">
+          <div style="font-size:16px;font-weight:700;color:var(--amber)">{{ meta.confusion_matrix.FN }}</div>
+          <div style="color:var(--text3)">FN</div>
+        </div>
+        <div style="padding:8px;background:var(--green-bg);border:1px solid var(--green-border);border-radius:6px;text-align:center">
+          <div style="font-size:16px;font-weight:700;color:var(--green)">{{ meta.confusion_matrix.TP }}</div>
+          <div style="color:var(--text3)">TP</div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="sidebar-counters">
+      <div class="counter-card">
+        <div class="counter-label">Frauds Caught</div>
+        <div class="counter-value red" id="cnt-fraud">0</div>
+      </div>
+      <div class="counter-card">
+        <div class="counter-label">Legit Cleared</div>
+        <div class="counter-value green" id="cnt-legit">0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Main ── -->
+  <div class="main">
+    <div class="page-header">
+      <div class="page-title">Transaction Fraud Detector</div>
+      <div class="page-sub">BERT model trained on synthetic_fraud_dataset.csv · Auto-loaded on every startup</div>
+    </div>
+
+    <!-- Metrics -->
+    <div class="metrics-row">
+      <div class="metric">
+        <div class="metric-label">Analyzed</div>
+        <div class="metric-value blue" id="m-total">0</div>
+        <div class="metric-sub">this session</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Fraud Rate</div>
+        <div class="metric-value red" id="m-rate">—</div>
+        <div class="metric-sub">of analyzed</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Avg Confidence</div>
+        <div class="metric-value amber" id="m-conf">—</div>
+        <div class="metric-sub">model certainty</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Model Accuracy</div>
+        <div class="metric-value green">
+          {% if meta %}{{ "%.1f"|format(meta.best_val_acc * 100) }}%{% else %}—{% endif %}
+        </div>
+        <div class="metric-sub">val set</div>
+      </div>
+    </div>
+
+    <!-- Input Card -->
+    <div class="card">
+      <div class="card-title">New Transaction</div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Amount (₹)</label>
+          <input type="number" id="f-amount" value="4922.59" step="0.01" min="0">
+        </div>
+        <div class="field">
+          <label>Transaction Type</label>
+          <select id="f-type">
+            <option>ATM</option>
+            <option>QR</option>
+            <option selected>Online</option>
+            <option>POS</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Merchant Category</label>
+          <select id="f-category">
+            <option selected>Travel</option>
+            <option>Food</option>
+            <option>Clothing</option>
+            <option>Grocery</option>
+            <option>Electronics</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Country</label>
+          <select id="f-country">
+            <option selected>TR</option>
+            <option>US</option>
+            <option>FR</option>
+            <option>DE</option>
+            <option>UK</option>
+            <option>NG</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Hour of Day (0–23)</label>
+          <input type="number" id="f-hour" value="12" min="0" max="23">
+        </div>
+        <div class="field">
+          <label>Device Risk Score (0–1)</label>
+          <input type="number" id="f-device" value="0.99" min="0" max="1" step="0.01">
+        </div>
+        <div class="field">
+          <label>IP Risk Score (0–1)</label>
+          <input type="number" id="f-ip" value="0.95" min="0" max="1" step="0.01">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-predict" onclick="runPredict()">
+          🔍 Analyze Transaction
+        </button>
+        <button class="btn btn-ghost" onclick="loadRandom()">↻ Random Sample</button>
+      </div>
+
+      <!-- Result -->
+      <div class="result-wrap" id="result-wrap">
+        <div class="result-header">
+          <div class="result-title" id="result-title"></div>
+          <div class="badge" id="result-risk-badge"></div>
+        </div>
+        <div class="conf-bar"><div class="conf-fill" id="conf-fill" style="width:0%"></div></div>
+        <div class="result-stats" id="result-stats"></div>
+        <div class="result-input" id="result-input"></div>
+        <div class="flags-row" id="result-flags"></div>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div class="card-title" style="margin-bottom:0">Prediction History</div>
+        <button class="btn btn-ghost" style="padding:6px 12px;font-size:11px" onclick="clearHistory()">Clear</button>
+      </div>
+      <div style="overflow-x:auto;border-radius:8px;border:1px solid var(--border)">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Amount</th>
+              <th>Type</th>
+              <th>Category</th>
+              <th>Country</th>
+              <th>Hour</th>
+              <th>Device</th>
+              <th>IP</th>
+              <th>Verdict</th>
+              <th>Confidence</th>
+            </tr>
+          </thead>
+          <tbody id="history-body">
+            <tr><td colspan="10" class="history-empty">No predictions yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let history = [], fraudCount = 0, legitCount = 0, totalConf = 0;
+
+const SAMPLES = [
+  {amount:4922.59, type:'ATM',    category:'Travel',      country:'TR', hour:12, device:0.99, ip:0.95},
+  {amount:48.02,   type:'QR',     category:'Food',        country:'US', hour:21, device:0.17, ip:0.22},
+  {amount:8500.00, type:'Online', category:'Electronics', country:'NG', hour:2,  device:0.85, ip:0.91},
+  {amount:120.50,  type:'POS',    category:'Grocery',     country:'DE', hour:14, device:0.08, ip:0.11},
+  {amount:3200.00, type:'ATM',    category:'Travel',      country:'FR', hour:23, device:0.72, ip:0.68},
+  {amount:55.80,   type:'QR',     category:'Food',        country:'UK', hour:12, device:0.15, ip:0.09},
+  {amount:11200.00,type:'Online', category:'Travel',      country:'TR', hour:1,  device:0.94, ip:0.88},
+  {amount:200.00,  type:'POS',    category:'Clothing',    country:'US', hour:16, device:0.20, ip:0.18},
+];
+
+function setVal(id, val){ document.getElementById(id).value = val; }
+function getVal(id)     { return document.getElementById(id).value; }
+
+function loadRandom() {
+  const s = SAMPLES[Math.floor(Math.random() * SAMPLES.length)];
+  setVal('f-amount',   s.amount);
+  setVal('f-type',     s.type);
+  setVal('f-category', s.category);
+  setVal('f-country',  s.country);
+  setVal('f-hour',     s.hour);
+  setVal('f-device',   s.device);
+  setVal('f-ip',       s.ip);
+  document.getElementById('result-wrap').style.display = 'none';
+}
+
+async function runPredict() {
+  const btn = document.getElementById('btn-predict');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Analyzing...';
+  document.getElementById('result-wrap').style.display = 'none';
+
+  const payload = {
+    amount:              parseFloat(getVal('f-amount'))  || 0,
+    transaction_type:    getVal('f-type'),
+    merchant_category:   getVal('f-category'),
+    country:             getVal('f-country'),
+    hour:                parseInt(getVal('f-hour'))      || 0,
+    device_risk_score:   parseFloat(getVal('f-device'))  || 0,
+    ip_risk_score:       parseFloat(getVal('f-ip'))      || 0,
+  };
+
+  try {
+    const res  = await fetch('/api/predict', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    showResult(data.result, payload);
+  } catch(e) {
+    showToast('Error: ' + e.message);
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '🔍 Analyze Transaction';
+}
+
+function showResult(r, payload) {
+  const isFraud = r.label === 1;
+  const conf    = Math.round(r.confidence * 100);
+  const wrap    = document.getElementById('result-wrap');
+
+  wrap.className = 'result-wrap fade-in ' + (isFraud ? 'fraud' : 'legit');
+  wrap.style.display = 'block';
+
+  const title = document.getElementById('result-title');
+  title.textContent = isFraud ? '⚠  FRAUD DETECTED' : '✓  LEGITIMATE TRANSACTION';
+  title.className = 'result-title ' + (isFraud ? 'fraud' : 'legit');
+
+  const riskBadge = document.getElementById('result-risk-badge');
+  riskBadge.textContent = r.risk_level;
+  riskBadge.className = 'badge ' + r.risk_level;
+
+  const fill = document.getElementById('conf-fill');
+  fill.style.width = conf + '%';
+  fill.className = 'conf-fill ' + (isFraud ? 'fraud' : 'legit');
+
+  document.getElementById('result-stats').textContent =
+    `Confidence: ${conf}%  ·  Fraud probability: ${Math.round(r.fraud_probability * 100)}%`;
+
+  document.getElementById('result-input').textContent = r.text_input;
+
+  document.getElementById('result-flags').innerHTML =
+    (r.flags || []).map(f =>
+      `<span class="flag-pill">${f}</span>`
+    ).join('');
+
+  // Update counters & metrics
+  if (isFraud) { fraudCount++; document.getElementById('cnt-fraud').textContent = fraudCount; }
+  else         { legitCount++; document.getElementById('cnt-legit').textContent = legitCount; }
+
+  const total = fraudCount + legitCount;
+  totalConf  += r.confidence;
+  document.getElementById('m-total').textContent = total;
+  document.getElementById('m-rate').textContent  = Math.round(fraudCount / total * 100) + '%';
+  document.getElementById('m-conf').textContent  = Math.round(totalConf / total * 100) + '%';
+
+  // History row
+  addHistoryRow(r, payload, total);
+}
+
+function addHistoryRow(r, p, rowNum) {
+  const body  = document.getElementById('history-body');
+  const empty = body.querySelector('.history-empty');
+  if (empty) empty.parentElement.remove();
+
+  const isFraud = r.label === 1;
+  const tr = document.createElement('tr');
+  tr.className = 'fade-in';
+  tr.innerHTML = `
+    <td style="color:var(--text3)">${rowNum}</td>
+    <td style="color:${p.amount > 5000 ? 'var(--red)' : 'var(--text)'}">₹${p.amount.toLocaleString()}</td>
+    <td>${p.transaction_type}</td>
+    <td>${p.merchant_category}</td>
+    <td>${p.country}</td>
+    <td style="color:${[0,1,2,3,22,23].includes(p.hour) ? 'var(--amber)' : 'var(--text2)'}">
+      ${String(p.hour).padStart(2,'0')}:00</td>
+    <td style="color:${p.device_risk_score > 0.7 ? 'var(--red)' : 'var(--text2)'}">
+      ${p.device_risk_score.toFixed(2)}</td>
+    <td style="color:${p.ip_risk_score > 0.7 ? 'var(--red)' : 'var(--text2)'}">
+      ${p.ip_risk_score.toFixed(2)}</td>
+    <td><span class="badge ${isFraud ? 'fraud' : 'legit'}" style="font-size:10px">
+      ${isFraud ? '⚠ FRAUD' : '✓ LEGIT'}</span></td>
+    <td style="color:${isFraud ? 'var(--red)' : 'var(--green)'}">
+      ${Math.round(r.confidence * 100)}%</td>`;
+  body.insertBefore(tr, body.firstChild);
+}
+
+function clearHistory() {
+  fraudCount = 0; legitCount = 0; totalConf = 0;
+  document.getElementById('cnt-fraud').textContent = '0';
+  document.getElementById('cnt-legit').textContent = '0';
+  document.getElementById('m-total').textContent   = '0';
+  document.getElementById('m-rate').textContent    = '—';
+  document.getElementById('m-conf').textContent    = '—';
+  document.getElementById('result-wrap').style.display = 'none';
+  document.getElementById('history-body').innerHTML =
+    '<tr><td colspan="10" class="history-empty">No predictions yet.</td></tr>';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
